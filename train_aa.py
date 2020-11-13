@@ -2,6 +2,7 @@ import argparse
 import datetime
 import os
 import random
+import shutil
 from collections import namedtuple
 from itertools import count
 
@@ -31,6 +32,17 @@ parser = argparse.ArgumentParser(description='Train an actor-critic model to pla
 add_common_train_args(parser)
 args = parser.parse_args()
 
+results_path = 'results/' + args.run_id
+
+if ((os.path.isdir(results_path) or os.path.isfile(results_path)) and not args.force):
+    print(results_path + " already exists. Exiting...")
+    exit(1)
+elif (args.force == True):
+    shutil.rmtree(results_path)
+
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter(results_path)
+
 torch.manual_seed(args.seed)
 random.seed(args.seed)
 np.random.seed(args.seed)
@@ -56,7 +68,7 @@ def run_compare(model):
 
     results = battleground.battle(lambda seed: ActorCriticAgent(model, seed), lambda seed: opponent_agent_class(seed), args.evaluation_games, args.seed+c_count)
 
-    win_percentage1 = 100*results.wins_agent1 / (results.n_games - results.draws)
+    win_percentage1 = 100*results.wins_agent1 / results.n_games
     if results.draws != n_games:
         print(ActorCriticAgent.__name__, "won", win_percentage1,
             "% of all N =", results.n_games ,"games against", opponent_agent_class.__name__, "Number of draws:", results.draws)
@@ -114,6 +126,7 @@ def finish_episode(epoch):
 
     # sum up all the values of policy_losses and value_losses
     loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
+    writer.add_scalar("Loss", loss, epoch)
 
     # perform backprop
     loss.backward()
@@ -150,7 +163,9 @@ def train():
 
         finish_episode(i_episode)
 
-        if i_episode % args.log_interval == 0:
+        writer.add_scalar("Cumulative reward", ep_reward, i_episode)
+
+        if i_episode % args.evaluation_interval == 0:
             model.eval()
 
             print("Comparing @ Episode", i_episode, end=': ')
@@ -161,6 +176,8 @@ def train():
             if avg_win_percentage_agent1 > args.solved:
                 solved = True
             last_win_percentage = win_percentage_agent1
+            writer.add_scalar("Win percentage", win_percentage_agent1, i_episode)
+            writer.add_scalar("Draws percentage", 100*draws/args.evaluation_games, i_episode)
 
         if solved:
             print("Solved after {} episodes! The last win percentage was {:2,f}".format(i_episode, last_win_percentage))
@@ -169,22 +186,25 @@ def train():
     if not solved:
         print("Not Solved after {} episodes!".format(args.episodes))
 
-    arr_results_wins_agent1 = np.array(results_wins_agent1)
-
-    fig = plt.figure(figsize=(8, 6))
-
-    plt.ylim(0, 110)
-    plt.plot(arr_results_wins_agent1[:,0], arr_results_wins_agent1[:,1], label="Wins Percentage Agent 1")
-    plt.legend(loc='lower right')
-    plt.xlabel("Episode")
-    plt.ylabel("Win percentage")
-    plt.show()
-
-    fig.savefig('train_win_percentage_' + os.path.basename(args.model_path) + '.png')
+def writeSettings():
+    f = open(results_path + '/settings.txt', 'w')
+    f.write('run-id: ' + str(args.run_id) + "\n")
+    f.write('bins: ' + str(args.bins) + "\n")
+    f.write('seeds: ' + str(args.seeds) + "\n")
+    f.write('episodes: '+ str(args.episodes) + "\n")
+    f.write('gamma: ' + str(args.gamma) + "\n")
+    f.write('seed: ' + str(args.seed) + "\n")
+    f.write('learning-rate: ' + str(args.learning_rate) + "\n")
+    f.write('neurons: ' + str(args.neurons) + "\n")
+    f.write('evaluation-interval' + str(args.evaluation_interval) + "\n")
+    f.write('evaluation-games ' + str(args.evaluation_games) + "\n")
+    f.write('solved: ' + str(args.solved) + "\n")
+    f.close()
 
 def main():
+    writeSettings()
     train()
-    torch.save(model, args.model_path)
+    torch.save(model, results_path + '/final_model.pt')
 
 if __name__ == '__main__':
     main()

@@ -53,20 +53,17 @@ class KalahEnv(gym.Env):
             self._board.move(opponent.get_next_move(self._board))
 
         if self._board.game_over():
-            if self._board.score()[player] > self._board.score()[other_player]:
-                reward += 10
-            else:
-                reward += -10
+            if self._board.score()[player] <= self._board.score()[other_player]:
+                reward = -10
         else:
-            new_score = self._board.score()[player]
-            reward = new_score - old_score - 0.1
+            reward = self._board.score()[player] - old_score
 
         return self._get_obs(), reward, self._board.game_over(), info
 
     def reset(self):
         if self._board == None:
             raise ValueError("Board is not set")
-        
+
         self._board.reset()
         return self._get_obs()
 

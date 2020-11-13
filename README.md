@@ -56,12 +56,10 @@ We provide a few scripts and models for reinforcement learning.
 A good way to start playing with the actor-critic model is using the following start parameters to train it:
 
 ```bash
-python train_aa.py --bins 4 --seeds 4 --log-interval 500 --episodes 500000 --gamma 0.99 --seed 1 --solved 90 --learning-rate 0.005 --neurons 512 --evaluation-games 100 --model-path ./aa_model.pt
+python train_aa.py --bins 4 --seeds 4 --evaluation-interval 10000 --episodes 500000 --gamma 0.99 --seed 1 --solved 99 --learning-rate 0.001 --neurons 256 --evaluation-games 100 --run-id aa_256neurons
 ```
 
-With these parameters, it should converge, i.e., reach the desired win rate (which is averaged over the last two evaluations), after 61000 played games.
-
-Expected output (last 2 lines):
+Example output (last two lines, may not be the same anymore, due to model/code changes):
 
 ```bash
 Comparing @ Episode 61000: ActorCriticAgent won 88.77551020408163 % of all N = 100 games against MaxScoreRepeatAgent Number of draws: 2
@@ -71,10 +69,10 @@ Solved after 61000 episodes! The last win percentage was 88.775510
 The model can then be compared to classic agents with the command
 
 ```bash
-python validate_aa.py --bins 4 --seeds 4 --validation-games 1000 --model-path ./aa_model.pt
+python validate_aa.py --bins 4 --seeds 4 --validation-games 1000 --model-path ./results/aa_256neurons/final_model.pt
 ```
 
-Expected output:
+Example output (may not be the same anymore, due to model/code changes):
 
 ```bash
 Comparisons with other agent:
@@ -84,7 +82,7 @@ ActorCriticAgent won 82.7 % ( n = 827 ) of all N = 1000 games against MaxScoreRe
 ActorCriticAgent won 53.5 % ( n = 535 ) of all N = 1000 games against MinimaxAgent Number of draws: 119
 ```
 
-### REINFORCE
+### REINFORCE (broken at the moment)
 
 A good way to start playing with the REINFORCE model is using the following start parameters to train it:
 
@@ -94,7 +92,7 @@ python train_reinforce.py --bins 4 --seeds 4 --log-interval 500 --episodes 20000
 
 With these parameters, it should converge, i.e., reach the desired win rate (which is averaged over the last two evaluations), after 156500 played games.
 
-Expected output (last 2 lines):
+Example output (last two lines, may not be the same anymore, due to model/code changes):
 
 ```bash
 Comparing @ Episode 156500: ReinforceAgent won 69.87951807228916 % of all N = 100 games against MaxScoreRepeatAgent Number of draws: 17
@@ -107,7 +105,7 @@ The model can then be compared to classic agents with the command
 python validate_reinforce.py --bins 4 --seeds 4 --validation-games 1000 --model-path ./reinforce_model.pt
 ```
 
-Expected output:
+Example output (may not be the same anymore, due to model/code changes):
 
 ```bash
 Comparisons with other agent:
