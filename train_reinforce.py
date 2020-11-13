@@ -2,6 +2,7 @@ import argparse
 import datetime
 import os
 import random
+import shutil
 from collections import namedtuple
 from itertools import count
 
@@ -33,6 +34,17 @@ parser.add_argument('--drop-out', type=float, default=0.1, metavar='DR',
                     help='drop out between layers, when 0 it is disabled (default: 0.1)')
 args = parser.parse_args()
 
+results_path = 'results/' + args.run_id
+
+if ((os.path.isdir(results_path) or os.path.isfile(results_path)) and not args.force):
+    print(results_path + " already exists. Exiting...")
+    exit(1)
+elif (args.force == True):
+    shutil.rmtree(results_path)
+
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter(results_path)
+
 torch.manual_seed(args.seed)
 random.seed(args.seed)
 np.random.seed(args.seed)
@@ -56,17 +68,16 @@ def run_compare(model):
 
     results = battleground.battle(lambda seed: ReinforceAgent(model, seed), lambda seed: opponent_agent_class(seed), args.evaluation_games, args.seed+c_count)
 
-    win_percentage1 = 100*results.wins_agent1 / (results.n_games - results.draws)
+    win_percentage1 = 100*results.wins_agent1 / results.n_games
     if results.draws != n_games:
         print(ReinforceAgent.__name__, "won", win_percentage1,
             "% of all N =", results.n_games ,"games against", opponent_agent_class.__name__, "Number of draws:", results.draws)
 
     return [results.n_games, win_percentage1, results.draws]
 
-eps = np.finfo(np.float32).eps.item()
-
 model = ReinforceModel(args.bins*2, args.bins, args.neurons, args.drop_out)
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+eps = np.finfo(np.float32).eps.item()
 
 def select_action(state):
     state = torch.from_numpy(state).float().unsqueeze(0)
@@ -76,7 +87,7 @@ def select_action(state):
     model.saved_log_probs.append(m.log_prob(action))
     return action.item()
 
-def finish_episode():
+def finish_episode(epoch):
     R = 0
     policy_loss = []
     returns = []
@@ -89,8 +100,12 @@ def finish_episode():
         policy_loss.append(-log_prob * R)
     optimizer.zero_grad()
     policy_loss = torch.cat(policy_loss).sum()
+
+    writer.add_scalar("Loss", policy_loss, epoch)
+
     policy_loss.backward()
     optimizer.step()
+
     del model.rewards[:]
     del model.saved_log_probs[:]
 
@@ -114,9 +129,9 @@ def train():
             if done:
                 break
 
-        finish_episode()
+        finish_episode(i_episode)
 
-        if i_episode % args.log_interval == 0:
+        if i_episode % args.evaluation_interval == 0:
             model.eval()
 
             print("Comparing @ Episode", i_episode, end=': ')
@@ -127,6 +142,8 @@ def train():
             if avg_win_percentage_agent1 > args.solved:
                 solved = True
             last_win_percentage = win_percentage_agent1
+            writer.add_scalar("Win percentage", win_percentage_agent1, i_episode)
+            writer.add_scalar("Draws percentage", 100*draws/args.evaluation_games, i_episode)
 
         if solved:
             print("Solved after {} episodes! The last win percentage was {:2,f}".format(i_episode, last_win_percentage))
@@ -148,6 +165,26 @@ def train():
 
     fig.savefig('train_win_percentage_' + os.path.basename(args.model_path) + '.png')
 
-if __name__ == '__main__':
+def writeSettings():
+    f = open(results_path + '/settings.txt', 'w')
+    f.write('run-id: ' + str(args.run_id) + "\n")
+    f.write('bins: ' + str(args.bins) + "\n")
+    f.write('seeds: ' + str(args.seeds) + "\n")
+    f.write('episodes: '+ str(args.episodes) + "\n")
+    f.write('gamma: ' + str(args.gamma) + "\n")
+    f.write('seed: ' + str(args.seed) + "\n")
+    f.write('learning-rate: ' + str(args.learning_rate) + "\n")
+    f.write('neurons: ' + str(args.neurons) + "\n")
+    f.write('drop-out: ' + str(args.drop_out) + "\n")
+    f.write('evaluation-interval' + str(args.evaluation_interval) + "\n")
+    f.write('evaluation-games ' + str(args.evaluation_games) + "\n")
+    f.write('solved: ' + str(args.solved) + "\n")
+    f.close()
+
+def main():
+    writeSettings()
     train()
     torch.save(model, args.model_path)
+
+if __name__ == '__main__':
+    main()
