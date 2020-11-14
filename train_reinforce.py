@@ -176,8 +176,8 @@ def writeSettings():
     f.write('learning-rate: ' + str(args.learning_rate) + "\n")
     f.write('neurons: ' + str(args.neurons) + "\n")
     f.write('drop-out: ' + str(args.drop_out) + "\n")
-    f.write('evaluation-interval' + str(args.evaluation_interval) + "\n")
-    f.write('evaluation-games ' + str(args.evaluation_games) + "\n")
+    f.write('evaluation-interval: ' + str(args.evaluation_interval) + "\n")
+    f.write('evaluation-games: ' + str(args.evaluation_games) + "\n")
     f.write('solved: ' + str(args.solved) + "\n")
     f.close()
 
