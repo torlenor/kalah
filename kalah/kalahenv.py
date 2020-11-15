@@ -1,4 +1,6 @@
 import gym
+from gym import spaces
+
 import numpy as np
 
 from kalah.kalahboard import KalahBoard
@@ -26,6 +28,7 @@ class KalahEnv(gym.Env):
 
     def set_board(self, board):
         self._board = board
+        self.action_space = spaces.Discrete(board.bins)
 
     def set_agent_factory(self, agent_factory):
         self.agent_factory = agent_factory
@@ -46,13 +49,15 @@ class KalahEnv(gym.Env):
 
         success = self._board.move(action)
         if success == False:
-            return self._get_obs(), -5, True, info
+            return self._get_obs(), -10, True, info
 
         # Perform the opponents moves
         while not self._board.game_over() and self._board.current_player() != player:
             self._board.move(opponent.get_next_move(self._board))
 
         if self._board.game_over():
+            if self._board.score()[player] > self._board.score()[other_player]:
+                reward = 100
             if self._board.score()[player] <= self._board.score()[other_player]:
                 reward = -10
         else:
