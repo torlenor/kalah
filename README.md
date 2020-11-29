@@ -1,6 +1,7 @@
 # Kalah
 
 [![Build and Test](https://github.com/torlenor/kalah/workflows/Build%20and%20Test/badge.svg?branch=master)](https://github.com/torlenor/kalah/actions?query=workflow%3A%22Build+and+Test%22)
+[![Coverage Status](https://coveralls.io/repos/github/torlenor/kalah/badge.svg?branch=master)](https://coveralls.io/github/torlenor/kalah?branch=master)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
 
 ## Description
