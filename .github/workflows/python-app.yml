@@ -35,3 +35,21 @@ jobs:
         pip install pytest
         pip install pytest-cov
         pytest --junitxml=junit/test-results.xml -o junit_family=xunit1 --cov=kalah
+    - name: Upload Coverage
+      run: coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_FLAG_NAME: ${{ matrix.os }}_${{ matrix.python-version }}
+        COVERALLS_PARALLEL: true
+  coveralls:
+    name: Finish Coveralls
+    needs: test
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+    - name: Finished
+      run: |
+        pip3 install --upgrade coveralls
+        coveralls --finish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
